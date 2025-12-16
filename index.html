@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🦇 Мышька-летучка</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* СБРАСЫВАЕМ ВСЕ ОТСТУПЫ И СКРОЛЛ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0c0c2e;
+            color: white;
+        }
+        
+        /* ОСНОВНОЙ КОНТЕЙНЕР */
+        .app-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* ВЕРХНЯЯ ПАНЕЛЬ СТАТИСТИКИ ИГРОКА */
+        .player-header {
+            background: linear-gradient(90deg, #1a1a3e 0%, #2d2d5e 100%);
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            border-bottom: 2px solid #8b00ff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        
+        /* ЛЕВАЯ ЧАСТЬ - ИГРОК И УРОВЕНЬ */
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .player-avatar {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #8b00ff, #ff0066);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+            border: 2px solid #ffcc00;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        
+        .player-details {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .player-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #ffcc00;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        
+        .level-info {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .level-badge {
+            background: #ff0066;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .level-bar-container {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .level-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0066, #ff9900);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .level-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent
+            );
+            animation: shimmer 2s infinite;
+        }
+        
+        .level-text {
+            font-size: 10px;
+            color: #aaa;
+            white-space: nowrap;
+            margin-left: 4px;
+        }
+        
+        /* ПРАВАЯ ЧАСТЬ - РЕСУРСЫ */
+        .player-resources {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        
+        .resource-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+        }
+        
+        .resource-with-plus {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .resource-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            border-radius: 50%;
+            margin-bottom: 2px;
+        }
+        
+        .blood-icon {
+            background: linear-gradient(135deg, #8b0000, #ff0000);
+            color: white;
+        }
+        
+        .energy-icon {
+            background: linear-gradient(135deg, #00b09b, #96c93d);
+            color: white;
+        }
+        
+        .gold-icon {
+            background: linear-gradient(135deg, #ffd700, #ff9900);
+            color: #8b4513;
+        }
+        
+        .gem-icon {
+            background: linear-gradient(135deg, #8b00ff, #00ccff);
+            color: white;
+        }
+        
+        .resource-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        
+        .resource-label {
+            font-size: 9px;
+            color: #aaa;
+            margin-top: -2px;
+        }
+        
+        .plus-button {
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            color: #ffcc00;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            margin-left: 2px;
+        }
+        
+        .plus-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        /* КОМНАТА БАШНИ */
+        .tower-room {
+            flex: 1;
+            background: linear-gradient(180deg, #1a1a3e 0%, #0c0c2e 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+        }
+        
+        .room-container {
+            width: 375px;
+            height: 300px;
+            max-width: 100%;
+            max-height: 60vh;
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 3px solid rgba(255, 0, 102, 0.3);
+        }
+        
+        .room-background {
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(rgba(12, 12, 46, 0.8), rgba(12, 12, 46, 0.9)),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="375" height="300"><defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="%238b00ff" stroke-width="1" opacity="0.3"/></pattern></defs><rect width="100%" height="100%" fill="%231a1a3e"/><rect width="100%" height="100%" fill="url(%23grid)"/><circle cx="50%" cy="40%" r="80" fill="%238b00ff" opacity="0.1"/></svg>');
+            background-size: cover;
+            background-position: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .tower-window {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 120px;
+            background: rgba(135, 206, 235, 0.2);
+            border: 8px solid #8B4513;
+            border-radius: 15px 15px 0 0;
+            overflow: hidden;
+            z-index: 2;
+        }
+        
+        .window-content {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1e3c72, #2a5298);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .bat-character {
+            position: absolute;
+            top: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            z-index: 4;
+            animation: batHover 2s ease-in-out infinite;
+        }
+        
+        /* СТАТУС БАРЫ МЫШКИ */
+        .status-bars {
+            padding: 15px 20px;
+            background: rgba(26, 26, 62, 0.8);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+        
+        .status-bar {
+            margin: 8px 0;
+        }
+        
+        .status-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        
+        .bar-container {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease;
+        }
+        
+        .hunger { 
+            background: linear-gradient(90deg, #ff416c, #ff4b2b);
+            width: 60%;
+        }
+        
+        .happiness { 
+            background: linear-gradient(90deg, #00b09b, #96c93d);
+            width: 80%;
+        }
+        
+        .energy { 
+            background: linear-gradient(90deg, #f7971e, #ffd200);
+            width: 70%;
+        }
+        
+        /* КНОПКИ ДЕЙСТВИЙ */
+        .action-buttons {
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: rgba(12, 12, 46, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+        
+        .action-btn {
+            background: linear-gradient(135deg, #8b00ff, #ff0066);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 5px;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 0, 102, 0.4);
+        }
+        
+        /* НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 62, 0.95);
+            border-top: 2px solid #8b00ff;
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-around;
+            flex-shrink: 0;
+        }
+        
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #888;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s;
+            min-width: 60px;
+            font-size: 11px;
+        }
+        
+        .nav-btn.active {
+            background: rgba(139, 0, 255, 0.2);
+            color: #ffcc00;
+            transform: translateY(-5px);
+        }
+        
+        .nav-btn i {
+            font-size: 20px;
+        }
+        
+        /* МОДАЛЬНЫЕ ОКНА */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+        
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a3e, #0c0c2e);
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 20px;
+            max-width: 400px;
+            max-height: 80vh;
+            border: 2px solid #8b00ff;
+        }
+        
+        /* АНИМАЦИИ */
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes batHover {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-10px); }
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* АДАПТИВНОСТЬ */
+        @media (max-width: 400px) {
+            .player-header {
+                padding: 10px 12px;
+            }
+            
+            .player-avatar {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+            }
+            
+            .player-name {
+                font-size: 14px;
+            }
+            
+            .resource-item {
+                min-width: 50px;
+            }
+            
+            .resource-value {
+                font-size: 12px;
+            }
+            
+            .plus-button {
+                width: 18px;
+                height: 18px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-height: 700px) {
+            .room-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+<body class="no-scroll no-select">
+    <div class="app-container">
+        <!-- ВЕРХНЯЯ ПАНЕЛЬ СТАТИСТИКИ ИГРОКА -->
+        <header class="player-header">
+            <!-- ЛЕВАЯ ЧАСТЬ: Игрок и уровень -->
+            <div class="player-info">
+                <div class="player-avatar" id="playerAvatar">
+                    🦇
+                </div>
+                <div class="player-details">
+                    <div class="player-name" id="playerName">
+                        Ночной_Охотник
+                    </div>
+                    <div class="level-info">
+                        <div class="level-badge">
+                            <i class="fas fa-crown"></i>
+                            <span id="currentLevel">15</span>
+                        </div>
+                        <div class="level-bar-container">
+                            <div class="level-bar-fill" id="levelBar" style="width: 75%"></div>
+                        </div>
+                        <div class="level-text" id="levelText">
+                            750/1000 XP
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ПРАВАЯ ЧАСТЬ: Ресурсы -->
+            <div class="player-resources">
+                <!-- Кровь (энергия для действий) -->
+                <div class="resource-item">
+                    <div class="resource-icon blood-icon">
+                        <i class="fas fa-tint"></i>
+                    </div>
+                    <div class="resource-value" id="bloodValue">42/100</div>
+                    <div class="resource-label">Кровь</div>
+                </div>
+                
+                <!-- Золото (за задания) -->
+                <div class="resource-item">
+                    <div class="resource-with-plus">
+                        <div class="resource-icon gold-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="resource-value" id="goldValue">1,250</div>
+                        <button class="plus-button" onclick="openShop('gold')">
+                            +
+                        </button>
+                    </div>
+                    <div class="resource-label">Золото</div>
+                </div>
+                
+                <!-- Гемы (премиум валюта) -->
+                <div class="resource-item">
+                    <div class="resource-with-plus">
+                        <div class="resource-icon gem-icon">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <div class="resource-value" id="gemValue">85</div>
+                        <button class="plus-button" onclick="openGemShop()">
+                            +
+                        </button>
+                    </div>
+                    <div class="resource-label">Гемы</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- КОМНАТА БАШНИ -->
+        <main class="tower-room">
+            <div class="room-container">
+                <div class="room-background"></div>
+                
+                <div class="tower-window">
+                    <div class="window-content" id="windowContent">
+                        🌙 Ночь
+                    </div>
+                </div>
+                
+                <div class="bat-character">
+                    <!-- Простая графика мышки -->
+                    <div style="
+                        width: 60px; 
+                        height: 40px; 
+                        background: #222; 
+                        border-radius: 50%;
+                        position: absolute;
+                        top: 20px;
+                        left: 10px;
+                        box-shadow: 0 0 10px rgba(255, 0, 102, 0.3);
+                    "></div>
+                    <div style="
+                        width: 80px; 
+                        height: 60px; 
+                        background: #111; 
+                        border-radius: 50%;
+                        position: absolute;
+                        top: 10px;
+                        left: -30px;
+                        transform: rotate(-20deg);
+                    "></div>
+                    <div style="
+                        width: 80px; 
+                        height: 60px; 
+                        background: #111; 
+                        border-radius: 50%;
+                        position: absolute;
+                        top: 10px;
+                        right: -30px;
+                        transform: rotate(20deg);
+                    "></div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- СТАТУС БАРЫ МЫШКИ -->
+        <div class="status-bars">
+            <div class="status-bar">
+                <div class="status-label">
+                    <span>🩸 Голод</span>
+                    <span id="hungerValue">60%</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill hunger"></div>
+                </div>
+            </div>
+            <div class="status-bar">
+                <div class="status-label">
+                    <span>😊 Настроение</span>
+                    <span id="happinessValue">80%</span>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-fill happiness"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- КНОПКИ ДЕЙСТВИЙ -->
+        <div class="action-buttons">
+            <button class="action-btn" onclick="performAction('feed')">
+                <i class="fas fa-wine-bottle"></i>
+                <span>Покормить</span>
+            </button>
+            <button class="action-btn" onclick="performAction('play')">
+                <i class="fas fa-ghost"></i>
+                <span>Поиграть</span>
+            </button>
+            <button class="action-btn" onclick="performAction('clean')">
+                <i class="fas fa-bath"></i>
+                <span>Помыть</span>
+            </button>
+            <button class="action-btn" onclick="performAction('sleep')">
+                <i class="fas fa-bed"></i>
+                <span>Уложить</span>
+            </button>
+        </div>
+        
+        <!-- НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ -->
+        <nav class="bottom-nav">
+            <button class="nav-btn" onclick="openTab('home')">
+                <i class="fas fa-home"></i>
+                <span>Главная</span>
+            </button>
+            <button class="nav-btn" onclick="openTab('shop')">
+                <i class="fas fa-store"></i>
+                <span>Магазин</span>
+            </button>
+            <button class="nav-btn" onclick="openTab('friends')">
+                <i class="fas fa-users"></i>
+                <span>Друзья</span>
+            </button>
+            <button class="nav-btn" onclick="openTab('tasks')">
+                <i class="fas fa-tasks"></i>
+                <span>Задачи</span>
+            </button>
+            <button class="nav-btn" onclick="openTab('settings')">
+                <i class="fas fa-cog"></i>
+                <span>Настройки</span>
+            </button>
+        </nav>
+        
+        <!-- МОДАЛЬНОЕ ОКНО МАГАЗИНА ЗОЛОТА -->
+        <div id="goldShopModal" class="modal">
+            <div class="modal-content">
+                <h3>💰 Купить золото</h3>
+                <p class="shop-subtitle">Золото можно получить за выполнение заданий или купить за гемы</p>
+                
+                <div class="shop-items">
+                    <div class="shop-item" onclick="buyGold(100, 10)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-coins" style="color: #ffd700;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>100 золота</h4>
+                            <p>Малый набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                            <span>10 гемов</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shop-item" onclick="buyGold(500, 45)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-coins" style="color: #ffd700;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>500 золота</h4>
+                            <p>Средний набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                            <span>45 гемов</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shop-item" onclick="buyGold(1500, 120)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-coins" style="color: #ffd700;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>1500 золота</h4>
+                            <p>Большой набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                            <span>120 гемов</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="balance-info">
+                    <p>Ваш баланс: <span id="currentGems">85</span> <i class="fas fa-gem"></i></p>
+                </div>
+                
+                <button onclick="closeModal('goldShopModal')" class="close-btn">Закрыть</button>
+            </div>
+        </div>
+        
+        <!-- МОДАЛЬНОЕ ОКНО МАГАЗИНА ГЕМОВ -->
+        <div id="gemShopModal" class="modal">
+            <div class="modal-content">
+                <h3>💎 Купить гемы</h3>
+                <p class="shop-subtitle">Гемы можно купить за Telegram Stars ⭐</p>
+                
+                <div class="shop-items">
+                    <div class="shop-item" onclick="buyGems(10, 10)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>10 гемов</h4>
+                            <p>Начальный набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-star" style="color: #ffcc00;"></i>
+                            <span>10 звёзд</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shop-item" onclick="buyGems(50, 45)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>50 гемов</h4>
+                            <p>Популярный набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-star" style="color: #ffcc00;"></i>
+                            <span>45 звёзд</span>
+                        </div>
+                    </div>
+                    
+                    <div class="shop-item" onclick="buyGems(150, 120)">
+                        <div class="shop-item-icon">
+                            <i class="fas fa-gem" style="color: #8b00ff;"></i>
+                        </div>
+                        <div class="shop-item-info">
+                            <h4>150 гемов</h4>
+                            <p>Выгодный набор</p>
+                        </div>
+                        <div class="shop-item-price">
+                            <i class="fas fa-star" style="color: #ffcc00;"></i>
+                            <span>120 звёзд</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="telegram-payment-info">
+                    <p><i class="fas fa-info-circle"></i> Оплата через Telegram Stars</p>
+                    <small>Звёзды можно получить за подписки или купить</small>
+                </div>
+                
+                <button onclick="closeModal('gemShopModal')" class="close-btn">Закрыть</button>
+            </div>
+        </div>
+        
+        <!-- МОДАЛЬНОЕ ОКНО ЗАДАНИЙ -->
+        <div id="tasksModal" class="modal">
+            <div class="modal-content">
+                <h3>🎯 Задания для золота</h3>
+                
+                <div class="tasks-list">
+                    <div class="task-item" onclick="completeTask('feed')">
+                        <div class="task-info">
+                            <h4>Покормить мышку</h4>
+                            <p>Покормите летучую мышку 3 раза</p>
+                        </div>
+                        <div class="task-reward">
+                            <i class="fas fa-coins"></i>
+                            <span>+50 золота</span>
+                        </div>
+                        <div class="task-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 66%"></div>
+                            </div>
+                            <span>2/3</span>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item" onclick="completeTask('play')">
+                        <div class="task-info">
+                            <h4>Поиграть с мышкой</h4>
+                            <p>Поиграйте 5 раз за день</p>
+                        </div>
+                        <div class="task-reward">
+                            <i class="fas fa-coins"></i>
+                            <span>+100 золота</span>
+                        </div>
+                        <div class="task-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 40%"></div>
+                            </div>
+                            <span>2/5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="task-item" onclick="completeTask('daily')">
+                        <div class="task-info">
+                            <h4>Ежедневный вход</h4>
+                            <p>Зайдите в игру 7 дней подряд</p>
+                        </div>
+                        <div class="task-reward">
+                            <i class="fas fa-coins"></i>
+                            <span>+200 золота</span>
+                        </div>
+                        <div class="task-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 85%"></div>
+                            </div>
+                            <span>6/7</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="closeModal('tasksModal')" class="close-btn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // Блокировка прокрутки
+            document.body.addEventListener('touchmove', function(e) {
+                if (!e.target.closest('.modal-content')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Telegram Web App
+            if (window.Telegram?.WebApp) {
+                const tg = Telegram.WebApp;
+                tg.expand();
+                tg.enableClosingConfirmation();
+                
+                // Получаем данные пользователя
+                const user = tg.initDataUnsafe?.user;
+                if (user) {
+                    updatePlayerInfo(user);
+                }
+            }
+            
+            // Загружаем данные игрока
+            loadPlayerData();
+            
+            // Запускаем обновления
+            startGameUpdates();
+        });
+        
+        // ========== ДАННЫЕ ИГРОКА ==========
+        let playerData = {
+            name: "Ночной_Охотник",
+            level: 15,
+            currentXP: 750,
+            maxXP: 1000,
+            blood: 42,          // Кровь для действий (восстанавливается со временем)
+            maxBlood: 100,
+            gold: 1250,         // Золото за задания
+            gems: 85,           // Гемы (премиум валюта)
+            telegramStars: 50   // Telegram Stars (если подключено)
+        };
+        
+        // ========== ОБНОВЛЕНИЕ ИНТЕРФЕЙСА ==========
+        function updatePlayerInfo(user) {
+            // Устанавливаем имя из Telegram
+            if (user.first_name) {
+                const username = user.username ? `@${user.username}` : user.first_name;
+                document.getElementById('playerName').textContent = username;
+                playerData.name = username;
+            }
+            
+            // Устанавливаем аватар (можно изменить позже)
+            const avatar = document.getElementById('playerAvatar');
+            if (user.photo_url) {
+                avatar.innerHTML = `<img src="${user.photo_url}" style="width:100%;height:100%;border-radius:50%;">`;
+            }
+        }
+        
+        function updatePlayerUI() {
+            // Уровень и опыт
+            const xpPercentage = (playerData.currentXP / playerData.maxXP) * 100;
+            document.getElementById('currentLevel').textContent = playerData.level;
+            document.getElementById('levelBar').style.width = `${xpPercentage}%`;
+            document.getElementById('levelText').textContent = 
+                `${playerData.currentXP}/${playerData.maxXP} XP`;
+            
+            // Ресурсы
+            document.getElementById('bloodValue').textContent = 
+                `${playerData.blood}/${playerData.maxBlood}`;
+            document.getElementById('goldValue').textContent = 
+                formatNumber(playerData.gold);
+            document.getElementById('gemValue').textContent = playerData.gems;
+            
+            // Обновляем в магазинах
+            document.getElementById('currentGems').textContent = playerData.gems;
+            
+            // Сохраняем данные
+            savePlayerData();
+        }
+        
+        // ========== СИСТЕМА КРОВИ (ЭНЕРГИИ) ==========
+        function useBlood(amount) {
+            if (playerData.blood >= amount) {
+                playerData.blood -= amount;
+                updatePlayerUI();
+                return true;
+            }
+            showNotification(`Недостаточно крови! Нужно подождать восстановления.`);
+            return false;
+        }
+        
+        function restoreBlood() {
+            // Восстановление крови со временем (1 единица в 5 минут)
+            playerData.blood = Math.min(playerData.maxBlood, playerData.blood + 1);
+            updatePlayerUI();
+        }
+        
+        // ========== МАГАЗИНЫ ==========
+        function openShop(type) {
+            closeAllModals();
+            if (type === 'gold') {
+                document.getElementById('goldShopModal').style.display = 'block';
+            }
+        }
+        
+        function openGemShop() {
+            closeAllModals();
+            document.getElementById('gemShopModal').style.display = 'block';
+        }
+        
+        function buyGold(amount, gemCost) {
+            if (playerData.gems >= gemCost) {
+                playerData.gems -= gemCost;
+                playerData.gold += amount;
+                updatePlayerUI();
+                showNotification(`Куплено ${amount} золота за ${gemCost} гемов!`);
+            } else {
+                showNotification(`Недостаточно гемов! Нужно ${gemCost}, есть ${playerData.gems}`);
+            }
+        }
+        
+        function buyGems(amount, starCost) {
+            // Интеграция с Telegram Stars
+            if (window.Telegram?.WebApp) {
+                const tg = Telegram.WebApp;
+                
+                // Показываем подтверждение покупки
+                if (confirm(`Купить ${amount} гемов за ${starCost} Telegram Stars?`)) {
+                    // В реальном приложении здесь будет вызов платежного API
+                    showNotification(`Покупка ${amount} гемов за ${starCost} Stars...`);
+                    
+                    // Демо-реализация
+                    setTimeout(() => {
+                        playerData.gems += amount;
+                        updatePlayerUI();
+                        showNotification(`Получено ${amount} гемов!`);
+                    }, 1000);
+                }
+            } else {
+                // Режим разработки
+                playerData.gems += amount;
+                updatePlayerUI();
+                showNotification(`Получено ${amount} гемов! (демо-режим)`);
+            }
+        }
+        
+        // ========== ЗАДАНИЯ ==========
+        let tasks = {
+            feed: { current: 2, required: 3, reward: 50, completed: false },
+            play: { current: 2, required: 5, reward: 100, completed: false },
+            daily: { current: 6, required: 7, reward: 200, completed: false }
+        };
+        
+        function completeTask(taskId) {
+            const task = tasks[taskId];
+            if (!task.completed) {
+                task.current++;
+                
+                if (task.current >= task.required) {
+                    task.completed = true;
+                    playerData.gold += task.reward;
+                    updatePlayerUI();
+                    showNotification(`Задание выполнено! +${task.reward} золота`);
+                    
+                    // Обновляем прогресс в интерфейсе
+                    updateTaskUI();
+                } else {
+                    showNotification(`Прогресс: ${task.current}/${task.required}`);
+                }
+            } else {
+                showNotification('Задание уже выполнено!');
+            }
+        }
+        
+        function updateTaskUI() {
+            // В реальном приложении здесь обновляем интерфейс заданий
+            console.log('Задания обновлены:', tasks);
+        }
+        
+        // ========== ДЕЙСТВИЯ С МЫШКОЙ ==========
+        function performAction(action) {
+            // Проверяем хватает ли крови
+            const bloodCost = {
+                feed: 10,
+                play: 15,
+                clean: 5,
+                sleep: 0
+            };
+            
+            if (useBlood(bloodCost[action])) {
+                // Обновляем прогресс заданий
+                if (action === 'feed') {
+                    tasks.feed.current = Math.min(tasks.feed.current + 1, tasks.feed.required);
+                } else if (action === 'play') {
+                    tasks.play.current = Math.min(tasks.play.current + 1, tasks.play.required);
+                }
+                
+                // Показываем анимацию
+                animateAction(action);
+                showNotification(`Действие выполнено! Использовано ${bloodCost[action]} крови`);
+            }
+        }
+        
+        // ========== УРОВЕНЬ И ОПЫТ ==========
+        function addXP(amount) {
+            playerData.currentXP += amount;
+            
+            // Проверка уровня ап
+            if (playerData.currentXP >= playerData.maxXP) {
+                playerData.level++;
+                playerData.currentXP -= playerData.maxXP;
+                playerData.maxXP = Math.floor(playerData.maxXP * 1.5); // Увеличиваем требуемый опыт
+                
+                showNotification(`🎉 Уровень повышен! Теперь уровень ${playerData.level}!`);
+                
+                // Награда за уровень
+                playerData.gems += 5;
+                playerData.gold += 100;
+            }
+            
+            updatePlayerUI();
+        }
+        
+        // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        function showNotification(message) {
+            // Упрощенная реализация уведомлений
+            console.log('Notification:', message);
+            alert(message); // В реальном приложении сделайте красивый попап
+        }
+        
+        function animateAction(action) {
+            const bat = document.querySelector('.bat-character');
+            bat.style.animation = 'none';
+            setTimeout(() => {
+                bat.style.animation = 'batHover 2s ease-in-out infinite';
+            }, 100);
+        }
+        
+        // ========== УПРАВЛЕНИЕ МОДАЛКАМИ ==========
+        function openTab(tabName) {
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            event.target.closest('.nav-btn').classList.add('active');
+            closeAllModals();
+            
+            if (tabName === 'tasks') {
+                document.getElementById('tasksModal').style.display = 'block';
+            } else if (tabName !== 'home') {
+                showNotification(`Раздел "${tabName}" в разработке`);
+            }
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-btn')[0].classList.add('active');
+        }
+        
+        function closeAllModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+        
+        // ========== СОХРАНЕНИЕ ДАННЫХ ==========
+        function savePlayerData() {
+            localStorage.setItem('batPlayerData', JSON.stringify({
+                ...playerData,
+                tasks: tasks,
+                lastSave: Date.now()
+            }));
+        }
+        
+        function loadPlayerData() {
+            const saved = localStorage.getItem('batPlayerData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                playerData = { ...playerData, ...data };
+                
+                // Восстанавливаем задачи
+                if (data.tasks) {
+                    tasks = data.tasks;
+                }
+                
+                // Восстанавливаем кровь со временем
+                if (data.lastSave) {
+                    const hoursPassed = (Date.now() - data.lastSave) / (1000 * 60 * 60);
+                    const bloodToRestore = Math.floor(hoursPassed * 12); // 12 крови в час
+                    playerData.blood = Math.min(playerData.maxBlood, playerData.blood + bloodToRestore);
+                }
+            }
+            
+            updatePlayerUI();
+        }
+        
+        // ========== АВТОМАТИЧЕСКИЕ ОБНОВЛЕНИЯ ==========
+        function startGameUpdates() {
+            // Восстановление крови каждые 5 минут
+            setInterval(restoreBlood, 5 * 60 * 1000);
+            
+            // Добавление опыта за время в игре
+            setInterval(() => {
+                addXP(1); // 1 XP в минуту
+            }, 60 * 1000);
+            
+            // Обновление времени в окне
+            updateWindowTime();
+            setInterval(updateWindowTime, 60 * 1000);
+        }
+        
+        function updateWindowTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            const windowContent = document.getElementById('windowContent');
+            
+            if (hour >= 6 && hour < 12) {
+                windowContent.textContent = '🌅 Утро';
+                windowContent.style.background = 'linear-gradient(to bottom, #ff7e5f, #feb47b)';
+            } else if (hour >= 12 && hour < 18) {
+                windowContent.textContent = '☀️ День';
+                windowContent.style.background = 'linear-gradient(to bottom, #87CEEB, #E0F6FF)';
+            } else if (hour >= 18 && hour < 22) {
+                windowContent.textContent = '🌆 Вечер';
+                windowContent.style.background = 'linear-gradient(to bottom, #654ea3, #da98b4)';
+            } else {
+                windowContent.textContent = '🌙 Ночь';
+                windowContent.style.background = 'linear-gradient(to bottom, #0f0c29, #302b63)';
+            }
+        }
+        
+        // ========== CSS ДЛЯ МОДАЛЬНЫХ ОКОН ==========
+        const modalStyles = document.createElement('style');
+        modalStyles.textContent = `
+            .shop-subtitle {
+                color: #aaa;
+                font-size: 14px;
+                margin-bottom: 20px;
+                text-align: center;
+            }
+            
+            .shop-items {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                margin: 20px 0;
+            }
+            
+            .shop-item {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 15px;
+                padding: 15px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                cursor: pointer;
+                transition: all 0.3s;
+                border: 1px solid transparent;
+            }
+            
+            .shop-item:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: #8b00ff;
+                transform: translateY(-2px);
+            }
+            
+            .shop-item-icon {
+                width: 40px;
+                height: 40px;
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+            }
+            
+            .shop-item-info {
+                flex: 1;
+            }
+            
+            .shop-item-info h4 {
+                margin: 0;
+                color: #ffcc00;
+            }
+            
+            .shop-item-info p {
+                margin: 5px 0 0 0;
+                color: #aaa;
+                font-size: 12px;
+            }
+            
+            .shop-item-price {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-weight: bold;
+                color: white;
+            }
+            
+            .balance-info {
+                background: rgba(0, 0, 0, 0.3);
+                border-radius: 10px;
+                padding: 10px;
+                text-align: center;
+                margin: 20px 0;
+            }
+            
+            .telegram-payment-info {
+                background: rgba(255, 204, 0, 0.1);
+                border: 1px solid #ffcc00;
+                border-radius: 10px;
+                padding: 10px;
+                margin: 20px 0;
+            }
+            
+            .telegram-payment-info i {
+                color: #ffcc00;
+                margin-right: 5px;
+            }
+            
+            .tasks-list {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                margin: 20px 0;
+            }
+            
+            .task-item {
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 15px;
+                padding: 15px;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+            
+            .task-item:hover {
+                background: rgba(255, 255, 255, 0.15);
+            }
+            
+            .task-info h4 {
+                margin: 0;
+                color: white;
+            }
+            
+            .task-info p {
+                margin: 5px 0;
+                color: #aaa;
+                font-size: 12px;
+            }
+            
+            .task-reward {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: #ffd700;
+                font-weight: bold;
+                margin: 10px 0;
+            }
+            
+            .task-progress {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-top: 10px;
+            }
+            
+            .progress-bar {
+                flex: 1;
+                height: 8px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 4px;
+                overflow: hidden;
+            }
+            
+            .progress-fill {
+                height: 100%;
+                background: linear-gradient(90deg, #00b09b, #96c93d);
+                border-radius: 4px;
+            }
+            
+            .close-btn {
+                background: linear-gradient(90deg, #ff0066, #ff9900);
+                border: none;
+                padding: 12px;
+                border-radius: 10px;
+                color: white;
+                font-weight: bold;
+                cursor: pointer;
+                width: 100%;
+                transition: all 0.3s;
+            }
+            
+            .close-btn:hover {
+                transform: scale(1.02);
+                box-shadow: 0 5px 15px rgba(255, 0, 102, 0.3);
+            }
+        `;
+        document.head.appendChild(modalStyles);
+    </script>
+</body>
+</html>
